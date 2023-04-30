@@ -4,9 +4,9 @@ import (
 	"context"
 	log "github.com/sirupsen/logrus"
 
-	"filesysnc/config"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"voidsync/config"
 )
 
 func NewMinioClient(cfg *config.Config) (*minio.Client, error) {

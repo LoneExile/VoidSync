@@ -3,8 +3,8 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 
-	"filesysnc/config"
-	"filesysnc/minio"
+	"voidsync/config"
+	"voidsync/minio"
 )
 
 func init() {

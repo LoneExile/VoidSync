@@ -3,11 +3,11 @@ package minio
 
 import (
 	"context"
-	"filesysnc/config"
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"voidsync/config"
 )
 
 func Upload(minioClient *minio.Client, cfg *config.Config, path string) error {
@@ -65,4 +65,3 @@ func uploadDir(minioClient *minio.Client, cfg *config.Config, dirPath string) er
 		return nil
 	})
 }
-

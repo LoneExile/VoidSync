@@ -1,4 +1,4 @@
-module filesysnc
+module voidsync
 
 go 1.20
 

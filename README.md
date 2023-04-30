@@ -1,2 +1,0 @@
-# filesync
-filesync with MinIO

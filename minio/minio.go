@@ -1,14 +1,64 @@
-// minio/minio.go
 package minio
 
 import (
 	"context"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"path/filepath"
 	"voidsync/config"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
 )
+
+func Download(minioClient *minio.Client, bucketName, prefix string, targetDir string) error {
+	ctx := context.Background()
+
+	// List all objects with the given prefix
+	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	// Download each object and save it to the target directory
+	for object := range objectCh {
+		if object.Err != nil {
+			return object.Err
+		}
+
+		// Download the object
+		obj, err := minioClient.GetObject(ctx, bucketName, object.Key, minio.GetObjectOptions{})
+		if err != nil {
+			return err
+		}
+
+		// Create target file path
+		targetPath := filepath.Join(targetDir, object.Key)
+
+		// Create target file's parent directory if not exists
+		err = os.MkdirAll(filepath.Dir(targetPath), os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		// Create target file
+		targetFile, err := os.Create(targetPath)
+		if err != nil {
+			return err
+		}
+		defer targetFile.Close()
+
+		// Write the downloaded object to the target file
+		_, err = io.Copy(targetFile, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Infof("Successfully downloaded %s to %s", prefix, targetDir)
+
+	return nil
+}
 
 func Upload(minioClient *minio.Client, cfg *config.Config, path string) error {
 	fileInfo, err := os.Stat(path)

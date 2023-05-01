@@ -36,7 +36,7 @@ func CreateBucket(minioClient *minio.Client, cfg *config.Config) error {
 	if err != nil {
 		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
 		if errBucketExists == nil && exists {
-			log.Errorf("We already own %s\n", bucketName)
+			log.Warnf("We already own %s\n", bucketName)
 		} else {
 			return err
 		}

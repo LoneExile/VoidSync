@@ -38,9 +38,9 @@ func main() {
 	}
 
 	// Download a file
-	serverPath := "/test.txt"
+	serverPath := "/"
 	localPath := "./public/download"
-	err = minio.Download(minioClient, cfg.MinIOBucketName, serverPath, localPath)
+	err = minio.DownloadObjects(minioClient, cfg, serverPath, localPath)
 	if err != nil {
 		log.Fatalln("Failed to download:", err)
 	}

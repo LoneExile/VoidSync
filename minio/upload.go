@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 	"voidsync/config"
 
 	"github.com/minio/minio-go/v7"
@@ -34,7 +35,21 @@ func uploadFile(minioClient *minio.Client, cfg *config.Config, filePath, objectN
 	ctx := context.Background()
 	bucketName := cfg.MinIOBucketName
 
-	info, err := minioClient.FPutObject(ctx, bucketName, objectName, filePath, minio.PutObjectOptions{ContentType: contentType})
+	// NOTE: RFC 3339 is an RFC standard for time strings,
+	// which is to say how to represent a timestamp in textual form
+	// e.g. 2020-01-01T00:00:00Z
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		log.Error("Failed to get file info:", err)
+		return err
+	}
+	modTime := fileInfo.ModTime()
+	opts := minio.PutObjectOptions{
+		ContentType: contentType, UserMetadata: map[string]string{
+			"x-amz-meta-original-modtime": modTime.Format(time.RFC3339),
+		}}
+
+	info, err := minioClient.FPutObject(ctx, bucketName, objectName, filePath, opts)
 	if err != nil {
 		log.Error("Failed to upload file:", err)
 		return err

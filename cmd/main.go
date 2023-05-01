@@ -31,9 +31,18 @@ func main() {
 	}
 
 	// Upload a file or directory
-	path := "./public"
+	path := "./public/upload"
 	err = minio.Upload(minioClient, cfg, path)
 	if err != nil {
 		log.Fatalln("Failed to upload:", err)
 	}
+
+	// Download a file
+	serverPath := "/test.txt"
+	localPath := "./public/download"
+	err = minio.Download(minioClient, cfg.MinIOBucketName, serverPath, localPath)
+	if err != nil {
+		log.Fatalln("Failed to download:", err)
+	}
+
 }

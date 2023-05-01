@@ -2,7 +2,6 @@ package minio
 
 import (
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"voidsync/config"
@@ -11,56 +10,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Download(minioClient *minio.Client, bucketName, prefix string, targetDir string) error {
-	ctx := context.Background()
-
-	// List all objects with the given prefix
-	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
-		Prefix:    prefix,
-		Recursive: true,
-	})
-
-	// Download each object and save it to the target directory
-	for object := range objectCh {
-		if object.Err != nil {
-			return object.Err
-		}
-
-		// Download the object
-		obj, err := minioClient.GetObject(ctx, bucketName, object.Key, minio.GetObjectOptions{})
-		if err != nil {
-			return err
-		}
-
-		// Create target file path
-		targetPath := filepath.Join(targetDir, object.Key)
-
-		// Create target file's parent directory if not exists
-		err = os.MkdirAll(filepath.Dir(targetPath), os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		// Create target file
-		targetFile, err := os.Create(targetPath)
-		if err != nil {
-			return err
-		}
-		defer targetFile.Close()
-
-		// Write the downloaded object to the target file
-		_, err = io.Copy(targetFile, obj)
-		if err != nil {
-			return err
-		}
+func Upload(minioClient *minio.Client, cfg *config.Config, path string) error {
+	err := checkIncompleteUploads(minioClient, cfg, "")
+	if err != nil {
+		log.Error("Failed to check and abort incomplete uploads:", err)
+		return err
 	}
 
-	log.Infof("Successfully downloaded %s to %s", prefix, targetDir)
-
-	return nil
-}
-
-func Upload(minioClient *minio.Client, cfg *config.Config, path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		log.Error("Failed to get file info:", err)
@@ -114,4 +70,32 @@ func uploadDir(minioClient *minio.Client, cfg *config.Config, dirPath string) er
 
 		return nil
 	})
+}
+
+func checkIncompleteUploads(minioClient *minio.Client, cfg *config.Config, objectPrefix string) error {
+	ctx := context.Background()
+	bucketName := cfg.MinIOBucketName
+
+	listUploads := minioClient.ListIncompleteUploads(ctx, bucketName, objectPrefix, true)
+
+	for upload := range listUploads {
+		if upload.Err != nil {
+			log.Error("Error listing incomplete uploads:", upload.Err)
+			return upload.Err
+		}
+
+		log.WithFields(log.Fields{
+			"objectName": upload.Key,
+			"uploadID":   upload.UploadID,
+		}).Warning("Incomplete upload found")
+
+		// Abort the incomplete upload
+		err := minioClient.RemoveIncompleteUpload(ctx, bucketName, upload.Key)
+		if err != nil {
+			log.Error("Failed to abort incomplete upload:", err)
+			return err
+		}
+	}
+
+	return nil
 }

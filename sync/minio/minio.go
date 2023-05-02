@@ -9,10 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func convertRemoteTimestamp(timestamp time.Time) time.Time {
-	return timestamp.UTC().Truncate(time.Second)
-}
-
 func Sync(client storage.Storage, localPath, remotePath string) error {
 	header := []string{"File", "Timestamp"}
 
@@ -33,7 +29,7 @@ func Sync(client storage.Storage, localPath, remotePath string) error {
 	// ------------------------------------------
 	remoteFileMap := make(map[string]time.Time)
 	for filePath, timestamp := range remoteFiles {
-		remoteFileMap[filePath] = convertRemoteTimestamp(timestamp)
+		remoteFileMap[filePath] = timestamp
 	}
 
 	// Upload local files that are new or modified
@@ -53,11 +49,11 @@ func Sync(client storage.Storage, localPath, remotePath string) error {
 	// Download remote files that are new or modified
 	for filePath, remoteFileInfo := range remoteFiles {
 		remotePath := filePath
-		remoteTimestamp := convertRemoteTimestamp(remoteFileInfo)
+		remoteTimestamp := remoteFileInfo
 
 		if localTimestamp, ok := localFiles[remotePath]; !ok || remoteTimestamp.After(localTimestamp) {
 			log.Infof("Downloading %s", remotePath)
-			err = client.Download(localPath, remotePath)
+			err = client.Download(remotePath, localPath)
 			if err != nil {
 				log.Errorf("Failed to download %s: %v", remotePath, err)
 			}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"voidsync/utils"
 )
 
 func GetLocalTimestamp(path string) (time.Time, error) {
@@ -35,6 +36,9 @@ func GetLocalFileList(path string) (map[string]time.Time, error) {
 
 	if err != nil {
 		return nil, err
+	}
+	for filePath, timestamp := range fileList {
+		fileList[filePath] = utils.ConvertTimestamp(timestamp)
 	}
 
 	return fileList, nil

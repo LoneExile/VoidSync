@@ -16,6 +16,7 @@ import (
 // Keep in mind that this approach assumes that the files in the target directory are not being accessed or modified by other processes during the download process.
 // I need to ensure that the target directory remains consistent even when accessed by other processes, I might need to implement file locking or other concurrency control mechanisms.
 
+// TODO: use ioutil.TempDir() instead of filepath.Join(localPath, ".tmp") to create a temporary directory
 func (m *MinioStorage) Download(serverPath string, localPath string) error {
 	ctx := context.Background()
 	bucketName := m.Cfg.MinIOBucketName

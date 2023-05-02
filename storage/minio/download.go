@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"voidsync/config"
 
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
@@ -17,17 +16,17 @@ import (
 // Keep in mind that this approach assumes that the files in the target directory are not being accessed or modified by other processes during the download process.
 // I need to ensure that the target directory remains consistent even when accessed by other processes, I might need to implement file locking or other concurrency control mechanisms.
 
-func DownloadObjects(minioClient *minio.Client, cfg *config.Config, prefix string, targetDir string) error {
+func (m *MinioStorage) Download(serverPath string, localPath string) error {
 	ctx := context.Background()
-	bucketName := cfg.MinIOBucketName
+	bucketName := m.Cfg.MinIOBucketName
 
-	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
-		Prefix:    prefix,
+	objectCh := m.Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    serverPath,
 		Recursive: true,
 	})
 
 	// Create a temporary directory for downloads
-	tempDir := filepath.Join(targetDir, ".tmp")
+	tempDir := filepath.Join(localPath, ".tmp")
 	err := os.MkdirAll(tempDir, os.ModePerm)
 	if err != nil {
 		return err
@@ -41,7 +40,7 @@ func DownloadObjects(minioClient *minio.Client, cfg *config.Config, prefix strin
 			return object.Err
 		}
 
-		err := downloadObject(minioClient, ctx, cfg, object.Key, tempDir)
+		err := m.downloadObject(ctx, object.Key, tempDir)
 		if err != nil {
 			return err
 		}
@@ -52,7 +51,7 @@ func DownloadObjects(minioClient *minio.Client, cfg *config.Config, prefix strin
 	// Move downloaded files from the temporary directory to the target directory
 	for _, objectKey := range objectKeys {
 		tempPath := filepath.Join(tempDir, objectKey)
-		targetPath := filepath.Join(targetDir, objectKey)
+		targetPath := filepath.Join(localPath, objectKey)
 
 		err = os.MkdirAll(filepath.Dir(targetPath), os.ModePerm)
 		if err != nil {
@@ -68,13 +67,13 @@ func DownloadObjects(minioClient *minio.Client, cfg *config.Config, prefix strin
 	return nil
 }
 
-func downloadObject(minioClient *minio.Client, ctx context.Context, cfg *config.Config, objectKey, targetDir string) error {
-	bucketName := cfg.MinIOBucketName
-	maxDownloadAttempts := cfg.MaxDownloadAttempts
+func (m *MinioStorage) downloadObject(ctx context.Context, objectKey, targetDir string) error {
+	bucketName := m.Cfg.MinIOBucketName
+	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
 
 	var err error
 	for i := 0; i < maxDownloadAttempts; i++ {
-		obj, err := minioClient.GetObject(ctx, bucketName, objectKey, minio.GetObjectOptions{})
+		obj, err := m.Client.GetObject(ctx, bucketName, objectKey, minio.GetObjectOptions{})
 		if err != nil {
 			continue
 		}

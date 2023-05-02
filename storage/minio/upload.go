@@ -4,37 +4,51 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"voidsync/config"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 )
 
-func Upload(minioClient *minio.Client, cfg *config.Config, path string) error {
-	err := checkIncompleteUploads(minioClient, cfg, "")
+func (m *MinioStorage) Upload(serverPath string) error {
+	err := m.checkIncompleteUploads("")
 	if err != nil {
 		log.Error("Failed to check and abort incomplete uploads:", err)
 		return err
 	}
 
-	fileInfo, err := os.Stat(path)
+	fileInfo, err := os.Stat(serverPath)
 	if err != nil {
 		log.Error("Failed to get file info:", err)
 		return err
 	}
 
 	if fileInfo.IsDir() {
-		return uploadDir(minioClient, cfg, path)
+		return m.uploadDir(serverPath)
 	} else {
-		return uploadFile(minioClient, cfg, path, filepath.Base(path), "application/octet-stream")
+		return m.uploadFile(serverPath, filepath.Base(serverPath), "application/octet-stream")
 	}
 }
 
-func uploadFile(minioClient *minio.Client, cfg *config.Config, filePath, objectName, contentType string) error {
+func (m *MinioStorage) uploadFile(filePath, objectName, contentType string) error {
 	ctx := context.Background()
-	bucketName := cfg.MinIOBucketName
+	bucketName := m.Cfg.MinIOBucketName
 
-	info, err := minioClient.FPutObject(ctx, bucketName, objectName, filePath, minio.PutObjectOptions{ContentType: contentType})
+	// NOTE: RFC 3339 is an RFC standard for time strings,
+	// which is to say how to represent a timestamp in textual form
+	// e.g. 2020-01-01T00:00:00Z
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		log.Error("Failed to get file info:", err)
+		return err
+	}
+	modTime := fileInfo.ModTime()
+	opts := minio.PutObjectOptions{
+		ContentType: contentType, UserMetadata: map[string]string{
+			"x-amz-meta-original-modtime": modTime.Format(time.RFC3339),
+		}}
+
+	info, err := m.Client.FPutObject(ctx, bucketName, objectName, filePath, opts)
 	if err != nil {
 		log.Error("Failed to upload file:", err)
 		return err
@@ -48,7 +62,7 @@ func uploadFile(minioClient *minio.Client, cfg *config.Config, filePath, objectN
 	return nil
 }
 
-func uploadDir(minioClient *minio.Client, cfg *config.Config, dirPath string) error {
+func (m *MinioStorage) uploadDir(dirPath string) error {
 	return filepath.Walk(dirPath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Error("Error accessing path:", err)
@@ -62,7 +76,7 @@ func uploadDir(minioClient *minio.Client, cfg *config.Config, dirPath string) er
 				return err
 			}
 
-			err = uploadFile(minioClient, cfg, filePath, relPath, "application/octet-stream")
+			err = m.uploadFile(filePath, relPath, "application/octet-stream")
 			if err != nil {
 				return err
 			}
@@ -72,11 +86,11 @@ func uploadDir(minioClient *minio.Client, cfg *config.Config, dirPath string) er
 	})
 }
 
-func checkIncompleteUploads(minioClient *minio.Client, cfg *config.Config, objectPrefix string) error {
+func (m *MinioStorage) checkIncompleteUploads(objectPrefix string) error {
 	ctx := context.Background()
-	bucketName := cfg.MinIOBucketName
+	bucketName := m.Cfg.MinIOBucketName
 
-	listUploads := minioClient.ListIncompleteUploads(ctx, bucketName, objectPrefix, true)
+	listUploads := m.Client.ListIncompleteUploads(ctx, bucketName, objectPrefix, true)
 
 	for upload := range listUploads {
 		if upload.Err != nil {
@@ -90,7 +104,7 @@ func checkIncompleteUploads(minioClient *minio.Client, cfg *config.Config, objec
 		}).Warning("Incomplete upload found")
 
 		// Abort the incomplete upload
-		err := minioClient.RemoveIncompleteUpload(ctx, bucketName, upload.Key)
+		err := m.Client.RemoveIncompleteUpload(ctx, bucketName, upload.Key)
 		if err != nil {
 			log.Error("Failed to abort incomplete upload:", err)
 			return err

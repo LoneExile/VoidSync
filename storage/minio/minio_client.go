@@ -9,7 +9,7 @@ import (
 	"voidsync/config"
 )
 
-func NewMinioClient(cfg *config.Config) (*minio.Client, error) {
+func newMinioClient(cfg *config.Config) (*minio.Client, error) {
 	minioClient, err := minio.New(cfg.MinIOEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinIOAccessKeyID, cfg.MinIOSecretKey, ""),
 		Secure: cfg.MinIOUseSSL,
@@ -27,7 +27,7 @@ func NewMinioClient(cfg *config.Config) (*minio.Client, error) {
 	return minioClient, nil
 }
 
-func CreateBucket(minioClient *minio.Client, cfg *config.Config) error {
+func createBucket(minioClient *minio.Client, cfg *config.Config) error {
 	ctx := context.Background()
 	bucketName := cfg.MinIOBucketName
 	log.Println("Creating bucket:", bucketName)

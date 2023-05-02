@@ -42,6 +42,24 @@ func main() {
 		return
 	}
 
+	// ----------------------------------------------------------------------
+
+	// // Upload a file or directory
+	// path := "./public/upload"
+	// err = client.Upload(path)
+	// if err != nil {
+	// 	log.Fatalln("Failed to upload:", err)
+	// }
+
+	// // Download a file
+	// serverPath := "/"
+	// localPath := "./public/download/"
+	// err = client.Download(serverPath, localPath)
+	// if err != nil {
+	// 	log.Fatalln("Failed to download:", err)
+	// }
+
+	// ----------------------------------------------------------------------
 	localPath := "./public/upload/"
 	remotePath := "/"
 
@@ -50,5 +68,4 @@ func main() {
 		fmt.Println("Error syncing:", err)
 		return
 	}
-
 }

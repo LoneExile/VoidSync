@@ -5,6 +5,7 @@ import (
 	"time"
 	"voidsync/config"
 	"voidsync/storage"
+	"voidsync/utils"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -58,6 +59,34 @@ func (m *MinioStorage) GetRemoteFileList(prefix string) (map[string]time.Time, e
 			return nil, object.Err
 		}
 		fileList[object.Key] = object.LastModified
+	}
+
+	// for object := range objectCh {
+	// 	if object.Err != nil {
+	// 		return nil, object.Err
+	// 	}
+
+	// 	objectName := object.Key
+
+	// 	// Get the object's metadata
+	// 	objectInfo, err := m.Client.StatObject(ctx, m.Cfg.MinIOBucketName, objectName, minio.StatObjectOptions{})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	// Extract the original modification time from the metadata
+	// 	originalModTimeStr := objectInfo.Metadata.Get("X-Amz-Meta-Original-Modtime")
+	// 	originalModTime, err := time.Parse(time.RFC3339, originalModTimeStr)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	// Use the original modification time instead of object.LastModified
+	// 	fileList[objectName] = originalModTime
+	// }
+
+	for filePath, timestamp := range fileList {
+		fileList[filePath] = utils.ConvertTimestamp(timestamp)
 	}
 
 	return fileList, nil

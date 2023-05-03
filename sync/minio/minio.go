@@ -1,7 +1,11 @@
 package minio
 
 import (
-	"time"
+	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"voidsync/storage"
 	"voidsync/sync"
 	"voidsync/utils"
@@ -27,19 +31,12 @@ func Sync(client storage.Storage, localPath, remotePath string) error {
 	utils.LogTable(header, remoteFiles)
 
 	// ------------------------------------------
-	remoteFileMap := make(map[string]time.Time)
-	for filePath, timestamp := range remoteFiles {
-		remoteFileMap[filePath] = timestamp
-	}
 
 	// Upload local files that are new or modified
 	for filePath, localFileInfo := range localFiles {
-		localPath := filePath
-		localTimestamp := localFileInfo
-
-		if remoteTimestamp, ok := remoteFileMap[localPath]; !ok || localTimestamp.After(remoteTimestamp) {
-			log.Infof("Uploading %s", localPath)
-			err = client.Upload(localPath)
+		if remoteTimestamp, ok := remoteFiles[filePath]; !ok || localFileInfo.After(remoteTimestamp) {
+			log.Infof("Uploading %s", filePath+"::"+filePath)
+			err = client.UploadFile(localPath, filePath, "application/octet-stream")
 			if err != nil {
 				log.Errorf("Failed to upload %s: %v", localPath, err)
 			}
@@ -47,18 +44,59 @@ func Sync(client storage.Storage, localPath, remotePath string) error {
 	}
 
 	// Download remote files that are new or modified
+	tmpDir := mkTmpDir()
+	isDownload := false
 	for filePath, remoteFileInfo := range remoteFiles {
-		remotePath := filePath
-		remoteTimestamp := remoteFileInfo
+		ctx := context.Background()
+		downloadTmpPath := filepath.Join(tmpDir, filePath)
+		downloadRemotePath := filepath.Join(remotePath, filePath)
 
-		if localTimestamp, ok := localFiles[remotePath]; !ok || remoteTimestamp.After(localTimestamp) {
-			log.Infof("Downloading %s", remotePath)
-			err = client.Download(remotePath, localPath)
+		if localTimestamp, ok := localFiles[filePath]; !ok || remoteFileInfo.After(localTimestamp) {
+			isDownload = true
+			log.Infof("Downloading to %s", filepath.Join("/tmp/", filePath))
+			err = client.DownloadObject(ctx, downloadRemotePath, downloadTmpPath)
 			if err != nil {
-				log.Errorf("Failed to download %s: %v", remotePath, err)
+				log.Errorf("Failed to download %s: %v", downloadRemotePath, err)
+			}
+		}
+	}
+
+	if isDownload {
+		for filePath := range remoteFiles {
+			downloadTempPath := filepath.Join(tmpDir, filePath)
+			localFilePath := filepath.Join(localPath, filePath)
+			println("Moving", filepath.Join("/tmp/", filePath), "to", localFilePath)
+
+			destDir := filepath.Dir(localFilePath)
+			if _, err := os.Stat(destDir); os.IsNotExist(err) {
+				err := os.MkdirAll(destDir, os.ModePerm)
+				if err != nil {
+					log.Errorf("Failed to create directory %s: %v", destDir, err)
+					continue
+				}
+				println("Created", destDir)
+			}
+
+			if _, err := os.Stat(downloadTempPath); err == nil {
+				err = os.Rename(downloadTempPath, localFilePath)
+				if err != nil {
+					log.Errorf("Failed to move file : %v", err)
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func mkTmpDir() string {
+	tempDir, err := ioutil.TempDir("", "voidsync")
+	if err != nil {
+		fmt.Println("Error creating temporary directory:", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	fmt.Println("Temporary directory created:", tempDir)
+
+	return tempDir
 }

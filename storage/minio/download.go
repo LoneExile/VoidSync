@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	// log "github.com/sirupsen/logrus"
 )
 
 // NOTE:

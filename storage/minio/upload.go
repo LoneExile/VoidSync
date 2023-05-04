@@ -2,18 +2,18 @@ package minio
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"os"
-	// "path/filepath"
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
 )
 
 func (m *MinioStorage) UploadFile(baseDir, filePath, contentType string) error {
 	err := m.checkIncompleteUploads("")
 	if err != nil {
-		log.Error("Failed to check and abort incomplete uploads:", err)
+		log.Println("🔴 Failed to check and abort incomplete uploads:", err)
 		return err
 	}
 
@@ -25,7 +25,7 @@ func (m *MinioStorage) UploadFile(baseDir, filePath, contentType string) error {
 	// e.g. 2020-01-01T00:00:00Z
 	fileInfo, err := os.Stat(baseDir + filePath)
 	if err != nil {
-		log.Error("Failed to get file info:", err)
+		log.Println("🔴 Failed to get file info:", err)
 		return err
 	}
 
@@ -37,14 +37,12 @@ func (m *MinioStorage) UploadFile(baseDir, filePath, contentType string) error {
 
 	info, err := m.Client.FPutObject(ctx, bucketName, filePath, baseDir+filePath, opts)
 	if err != nil {
-		log.Error("Failed to upload file:", err)
+		log.Println("🔴 Failed to upload file:", err)
 		return err
 	}
 
-	log.WithFields(log.Fields{
-		"objectName": filePath,
-		"size":       info.Size,
-	}).Info("Successfully uploaded file")
+	logMessage := fmt.Sprintf("Successfully uploaded file: %s, size: %d", filePath, info.Size)
+	log.Println(logMessage)
 
 	return nil
 }
@@ -57,19 +55,17 @@ func (m *MinioStorage) checkIncompleteUploads(objectPrefix string) error {
 
 	for upload := range listUploads {
 		if upload.Err != nil {
-			log.Error("Error listing incomplete uploads:", upload.Err)
+			log.Println("🔴 Error listing incomplete uploads:", upload.Err)
 			return upload.Err
 		}
 
-		log.WithFields(log.Fields{
-			"objectName": upload.Key,
-			"uploadID":   upload.UploadID,
-		}).Warning("Incomplete upload found")
+		logMessage := fmt.Sprintf("Incomplete upload found: %s, uploadID: %s", upload.Key, upload.UploadID)
+		log.Println(logMessage)
 
 		// Abort the incomplete upload
 		err := m.Client.RemoveIncompleteUpload(ctx, bucketName, upload.Key)
 		if err != nil {
-			log.Error("Failed to abort incomplete upload:", err)
+			log.Println("🔴 Failed to abort incomplete upload:", err)
 			return err
 		}
 	}

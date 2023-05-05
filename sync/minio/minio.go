@@ -6,15 +6,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 	"voidsync/storage"
-	"voidsync/sync"
 	"voidsync/utils"
 )
 
 func Sync(client storage.Storage, localPath, remotePath string) error {
-	localFiles, err := sync.GetLocalFileList(localPath)
-	header := []string{"File", "Timestamp"}
+	localFiles, err := utils.GetLocalFileList(localPath)
+	header := []string{"File", "ETag", "Timestamp"}
+
+	// // TODO: don't use Fatalln, handle error properly
 	if err != nil {
 		log.Fatalln("Failed to get local file list:", err)
 	}
@@ -27,15 +27,15 @@ func Sync(client storage.Storage, localPath, remotePath string) error {
 	utils.LogTable(header, remoteFiles)
 
 	tmpDir := mkTmpDir()
-	uploadFiles(client, localFiles, remoteFiles, localPath)
 	downloadFiles(client, localFiles, remoteFiles, localPath, remotePath, tmpDir)
+	uploadFiles(client, localFiles, remoteFiles, localPath)
 
 	return nil
 }
 
-func uploadFiles(client storage.Storage, localFiles, remoteFiles map[string]time.Time, localPath string) {
+func uploadFiles(client storage.Storage, localFiles, remoteFiles map[string]storage.FileInfo, localPath string) {
 	for filePath, localFileInfo := range localFiles {
-		if remoteTimestamp, ok := remoteFiles[filePath]; !ok || localFileInfo.After(remoteTimestamp) {
+		if remoteFileInfo, ok := remoteFiles[filePath]; !ok || (localFileInfo.ETag != remoteFileInfo.ETag && localFileInfo.Timestamp.After(remoteFileInfo.Timestamp)) {
 			log.Printf("Uploading %s\n", filePath)
 			err := client.UploadFile(localPath, filePath, "application/octet-stream")
 			if err != nil {
@@ -45,11 +45,11 @@ func uploadFiles(client storage.Storage, localFiles, remoteFiles map[string]time
 	}
 }
 
-func downloadFiles(client storage.Storage, localFiles, remoteFiles map[string]time.Time, localPath, remotePath string, tmpDir string) {
+func downloadFiles(client storage.Storage, localFiles, remoteFiles map[string]storage.FileInfo, localPath, remotePath string, tmpDir string) {
 	isDownload := false
 
 	for filePath, remoteFileInfo := range remoteFiles {
-		if localTimestamp, ok := localFiles[filePath]; !ok || remoteFileInfo.After(localTimestamp) {
+		if localFileInfo, ok := localFiles[filePath]; !ok || (remoteFileInfo.ETag != localFileInfo.ETag && remoteFileInfo.Timestamp.After(localFileInfo.Timestamp)) {
 			isDownload = true
 			downloadTmpPath := filepath.Join(tmpDir, filePath)
 			downloadRemotePath := filepath.Join(remotePath, filePath)
@@ -67,11 +67,11 @@ func downloadFiles(client storage.Storage, localFiles, remoteFiles map[string]ti
 	}
 }
 
-func moveFiles(localFiles map[string]time.Time, localPath, tmpDir string) {
+func moveFiles(localFiles map[string]storage.FileInfo, localPath, tmpDir string) {
 	for filePath := range localFiles {
 		downloadTempPath := filepath.Join(tmpDir, filePath)
 		localFilePath := filepath.Join(localPath, filePath)
-		log.Println("Moving", filepath.Join("/tmp/", filePath), "to", localFilePath)
+		// log.Println("Moving", filepath.Join("/tmp/", filePath), "to", localFilePath)
 
 		destDir := filepath.Dir(localFilePath)
 		if _, err := os.Stat(destDir); os.IsNotExist(err) {

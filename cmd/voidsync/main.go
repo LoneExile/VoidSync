@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"voidsync/config"
 	"voidsync/storage"
 	"voidsync/storage/minio"

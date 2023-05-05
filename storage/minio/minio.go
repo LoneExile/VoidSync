@@ -45,9 +45,9 @@ func (m *MinioStorage) GetRemoteTimestamp(path string) (time.Time, error) {
 	return object.LastModified, nil
 }
 
-func (m *MinioStorage) GetRemoteFileList(prefix string) (map[string]time.Time, error) {
+func (m *MinioStorage) GetRemoteFileList(prefix string) (map[string]storage.FileInfo, error) {
 	ctx := context.Background()
-	fileList := make(map[string]time.Time)
+	fileList := make(map[string]storage.FileInfo)
 
 	objectCh := m.Client.ListObjects(ctx, m.Cfg.MinIOBucketName, minio.ListObjectsOptions{
 		Prefix:    prefix,
@@ -58,35 +58,11 @@ func (m *MinioStorage) GetRemoteFileList(prefix string) (map[string]time.Time, e
 		if object.Err != nil {
 			return nil, object.Err
 		}
-		fileList[object.Key] = object.LastModified
-	}
-
-	// for object := range objectCh {
-	// 	if object.Err != nil {
-	// 		return nil, object.Err
-	// 	}
-
-	// 	objectName := object.Key
-
-	// 	// Get the object's metadata
-	// 	objectInfo, err := m.Client.StatObject(ctx, m.Cfg.MinIOBucketName, objectName, minio.StatObjectOptions{})
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	// Extract the original modification time from the metadata
-	// 	originalModTimeStr := objectInfo.Metadata.Get("X-Amz-Meta-Original-Modtime")
-	// 	originalModTime, err := time.Parse(time.RFC3339, originalModTimeStr)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	// Use the original modification time instead of object.LastModified
-	// 	fileList[objectName] = originalModTime
-	// }
-
-	for filePath, timestamp := range fileList {
-		fileList[filePath] = utils.ConvertTimestamp(timestamp)
+		fileList[object.Key] = storage.FileInfo{
+			Path:      object.Key,
+			Timestamp: utils.ConvertTimestamp(object.LastModified),
+			ETag:      object.ETag,
+		}
 	}
 
 	return fileList, nil

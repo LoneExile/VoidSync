@@ -3,7 +3,9 @@ package minio
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -50,10 +52,9 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 	if err != nil {
 		return errors.New("failed to download object after multiple attempts: " + objectKey)
 	}
-	// log.WithFields(log.Fields{
-	// 	"objectKey": objectKey,
-	// 	"targetDir": targetDir,
-	// }).Info("Successfully downloaded object")
+
+	logMessage := fmt.Sprintf("✅ Successfully downloaded object: objectKey=%s, targetDir=%s", objectKey, targetDir)
+	log.Println(logMessage)
 
 	return nil
 }

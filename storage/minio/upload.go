@@ -41,7 +41,7 @@ func (m *MinioStorage) UploadFile(baseDir, filePath, contentType string) error {
 		return err
 	}
 
-	logMessage := fmt.Sprintf("Successfully uploaded file: %s, size: %d", filePath, info.Size)
+	logMessage := fmt.Sprintf("✅ Successfully uploaded file: %s, size: %d", filePath, info.Size)
 	log.Println(logMessage)
 
 	return nil

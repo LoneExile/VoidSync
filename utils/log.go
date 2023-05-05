@@ -3,33 +3,35 @@ package utils
 import (
 	"fmt"
 	"strings"
-	"time"
+	"voidsync/storage"
 )
 
-func LogTable(header []string, data map[string]time.Time) {
-	// Find the longest key
-	longestKey := 0
+func LogTable(header []string, data map[string]storage.FileInfo) {
+	longestFirstKey := 0
 	for key := range data {
-		if len(key) > longestKey {
-			longestKey = len(key)
+		if len(key) > longestFirstKey {
+			longestFirstKey = len(key)
+		}
+	}
+	longestSecondKey := 0
+	for _, value := range data {
+		if len(value.ETag) > longestSecondKey {
+			longestSecondKey = len(value.ETag)
 		}
 	}
 
-	// Calculate column widths
-	col1Width := longestKey + 2
-	col2Width := len(header[1]) + 2
+	col1Width := longestFirstKey + 2
+	col2Width := longestSecondKey + 2
+	col3Width := len(header[2]) + 2
 
 	fmt.Println()
-	fmt.Println(strings.Repeat("-", col1Width+col2Width+3))
-	// Print header
-	fmt.Printf("%-*s| %-*s\n", col1Width, header[0], col2Width, header[1])
+	fmt.Println(strings.Repeat("-", col1Width+col2Width+col3Width+20))
+	fmt.Printf("📂 %-*s| %-*s| %-*s\n", col1Width, header[0], col2Width, header[1], col3Width, header[2])
 
-	// Print separator
-	fmt.Println(strings.Repeat("-", col1Width+col2Width+3))
+	fmt.Println(strings.Repeat("-", col1Width+col2Width+col3Width+20))
 
-	// Print data rows
 	for key, value := range data {
-		fmt.Printf("%-*s| %-*v\n", col1Width, key, col2Width, value)
+		fmt.Printf("📃 %-*s| %-*v| %-*v\n", col1Width, key, col2Width, value.ETag, col3Width, value.Timestamp)
 	}
-	fmt.Println(strings.Repeat("-", col1Width+col2Width+3))
+	fmt.Println(strings.Repeat("-", col1Width+col2Width+col3Width+20))
 }

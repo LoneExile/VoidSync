@@ -1,7 +1,9 @@
 package sync
 
-import "time"
+import (
+// "voidsync/storage"
+)
 
 type Synchronizer interface {
-	GetLocalFileList(path string) (map[string]time.Time, error)
+	// Sync(client storage.Storage, localPath, remotePath string) error
 }

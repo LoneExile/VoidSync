@@ -21,4 +21,3 @@ func calculateMD5(filePath string) (string, error) {
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
-

@@ -11,13 +11,7 @@ import (
 	sMinio "voidsync/sync/minio"
 )
 
-type Dependencies struct {
-	StorageClient storage.Storage
-	Syncer        sync.Syncer
-}
-
 func main() {
-
 	cfg := config.LoadConfig()
 
 	var store storage.Storage

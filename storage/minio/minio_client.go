@@ -3,10 +3,12 @@ package minio
 import (
 	"context"
 	"fmt"
+	"log"
+
+	"voidsync/config"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"log"
-	"voidsync/config"
 )
 
 func newMinioClient(cfg *config.Config) (*minio.Client, error) {

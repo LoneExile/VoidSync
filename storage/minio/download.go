@@ -24,7 +24,6 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 
 	var err error
 	for i := 0; i < maxDownloadAttempts; i++ {
-
 		obj, err := m.Client.GetObject(ctx, bucketName, objectKey, minio.GetObjectOptions{})
 		if err != nil {
 			continue
@@ -60,7 +59,7 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 	return nil
 }
 
-// TODO: Add a progress bar, download multiple objects concurrently using goroutines
+// TODO: Add a progress bar, download multiple objects concurrently using goroutines.
 func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix, targetDir string) error {
 	bucketName := m.Cfg.MinIOBucketName
 	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts

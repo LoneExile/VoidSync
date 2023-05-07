@@ -87,5 +87,4 @@ func Init() {
 	if _, err = db.Delete(selectedUser.ID); err != nil {
 		panic(err)
 	}
-
 }

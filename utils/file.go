@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -35,7 +34,6 @@ func GetLocalFileList(path string) (map[string]storage.FileInfo, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +59,6 @@ func GetLocalFileListTime(path string) (map[string]time.Time, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -70,10 +67,7 @@ func GetLocalFileListTime(path string) (map[string]time.Time, error) {
 }
 
 func MkTmpDir() string {
-	tempDir, err := ioutil.TempDir("", "voidsync")
-	if err != nil {
-		log.Println("Error creating temporary directory:", err)
-	}
+	tempDir := filepath.Join(os.TempDir(), "voidsync")
 
 	log.Println("Temporary directory created:", tempDir)
 

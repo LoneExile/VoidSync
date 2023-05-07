@@ -1,9 +1,8 @@
 package sync
 
-import (
-// "voidsync/storage"
-)
+import "voidsync/storage"
 
-type Synchronizer interface {
-	// Sync(client storage.Storage, localPath, remotePath string) error
+type Syncer interface {
+	Sync(client storage.Storage, localPath, remotePath string) error
 }
+

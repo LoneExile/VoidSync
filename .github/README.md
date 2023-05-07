@@ -1,4 +1,4 @@
-# VoidSync
+# VoidSync (WIP)
 
 VoidSync is an application that synchronizes files with MinIO and supports
 notifications using Kafka.

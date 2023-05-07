@@ -4,19 +4,28 @@ import (
 	"log"
 	"voidsync/config"
 	"voidsync/db"
+	"voidsync/server"
 	"voidsync/storage"
 	"voidsync/storage/minio"
+	"voidsync/sync"
 	sMinio "voidsync/sync/minio"
 )
+
+type Dependencies struct {
+	StorageClient storage.Storage
+	Syncer        sync.Syncer
+}
 
 func main() {
 
 	cfg := config.LoadConfig()
 
 	var store storage.Storage
+	var syncer sync.Syncer
 
 	if cfg.StorageType == "minio" {
 		store = minio.NewMinioStorage()
+		syncer = sMinio.NewMinioSyncer()
 	} else {
 		log.Println("🔴 Invalid storage type")
 		return
@@ -34,15 +43,7 @@ func main() {
 		return
 	}
 
-	// ----------------------------------------------------------------------
-	localPath := "./public/upload/"
-	remotePath := "/"
-
-	err = sMinio.Sync(client, localPath, remotePath)
-	if err != nil {
-		log.Println("🔴 Error syncing:", err)
-		return
-	}
-
 	db.Init()
+
+	server.StartServer(client, syncer)
 }

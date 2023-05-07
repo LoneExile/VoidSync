@@ -10,7 +10,13 @@ import (
 	"voidsync/utils"
 )
 
-func Sync(client storage.Storage, localPath, remotePath string) error {
+type MinioSyncer struct{}
+
+func NewMinioSyncer() *MinioSyncer {
+	return &MinioSyncer{}
+}
+
+func (m *MinioSyncer) Sync(client storage.Storage, localPath, remotePath string) error {
 	localFiles, err := utils.GetLocalFileList(localPath)
 	header := []string{"File", "ETag", "Timestamp"}
 

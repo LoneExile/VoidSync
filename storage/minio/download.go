@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"voidsync/utils"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -50,11 +51,57 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 	}
 
 	if err != nil {
-		return errors.New("failed to download object after multiple attempts: " + objectKey)
+		return errors.New("🔴 failed to download object after multiple attempts: " + objectKey)
 	}
 
 	logMessage := fmt.Sprintf("✅ Successfully downloaded object: objectKey=%s, targetDir=%s", objectKey, targetDir)
 	log.Println(logMessage)
+
+	return nil
+}
+
+// TODO: Add a progress bar, download multiple objects concurrently using goroutines
+func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix, targetDir string) error {
+	bucketName := m.Cfg.MinIOBucketName
+	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
+
+	objectCh := m.Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
+		return err
+	}
+	tmpDir := utils.MkTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	for object := range objectCh {
+		if object.Err != nil {
+			return object.Err
+		}
+
+		var err error
+		for i := 0; i < maxDownloadAttempts; i++ {
+			tmpFile := filepath.Join(tmpDir, object.Key)
+			err = m.DownloadObject(ctx, object.Key, tmpFile)
+			if err == nil {
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+
+		if err != nil {
+			return errors.New("🔴 failed to download object after multiple attempts: " + object.Key)
+		}
+	}
+
+	if err := utils.MoveFiles(tmpDir, targetDir); err != nil {
+		log.Println("🔴 failed to move files from tmp dir to target dir")
+		return err
+	}
+	log.Println("✅ Successfully downloaded all objects")
 
 	return nil
 }

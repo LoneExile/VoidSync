@@ -2,7 +2,6 @@ package minio
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,7 +31,9 @@ func (m *MinioSyncer) Sync(client storage.Storage, localPath, remotePath string)
 	}
 	utils.LogTable(header, remoteFiles)
 
-	tmpDir := mkTmpDir()
+	tmpDir := utils.MkTmpDir()
+	defer os.RemoveAll(tmpDir)
+
 	downloadFiles(client, localFiles, remoteFiles, localPath, remotePath, tmpDir)
 	uploadFiles(client, localFiles, remoteFiles, localPath)
 
@@ -96,16 +97,4 @@ func moveFiles(localFiles map[string]storage.FileInfo, localPath, tmpDir string)
 			}
 		}
 	}
-}
-
-func mkTmpDir() string {
-	tempDir, err := ioutil.TempDir("", "voidsync")
-	if err != nil {
-		log.Println("Error creating temporary directory:", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	log.Println("Temporary directory created:", tempDir)
-
-	return tempDir
 }

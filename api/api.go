@@ -9,6 +9,7 @@ import (
 type API interface {
 	GetRemoteFileList(remotePath string) (map[string]storage.FileInfo, error)
 	Sync(localPath string, remotePath string) error
+	DownloadAllObjects(localPath, remotePath string) error
 }
 
 func NewAPI(client storage.Storage, syncer sync.Syncer) API {

@@ -19,6 +19,7 @@ type Storage interface {
 	UploadFile(baseDir, filePath, contentType string) error
 
 	DownloadObject(ctx context.Context, objectKey, targetDir string) error
+	DownloadAllObjects(ctx context.Context, prefix, targetDir string) error
 
 	GetRemoteTimestamp(path string) (time.Time, error)
 	GetRemoteFileList(prefix string) (map[string]FileInfo, error)

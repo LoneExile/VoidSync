@@ -1,6 +1,7 @@
 package minio
 
 import (
+	"context"
 	"voidsync/storage"
 	"voidsync/sync"
 )
@@ -27,6 +28,14 @@ func (api *ginAPI) GetRemoteFileList(remotePath string) (map[string]storage.File
 
 func (api *ginAPI) Sync(localPath string, remotePath string) error {
 	err := api.syncClient.Sync(api.storageClient, localPath, remotePath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (api *ginAPI) DownloadAllObjects(localPath, remotePath string) error {
+	err := api.storageClient.DownloadAllObjects(context.Background(), localPath, remotePath)
 	if err != nil {
 		return err
 	}

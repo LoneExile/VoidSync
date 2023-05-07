@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -65,4 +67,44 @@ func GetLocalFileListTime(path string) (map[string]time.Time, error) {
 	}
 
 	return fileList, nil
+}
+
+func MkTmpDir() string {
+	tempDir, err := ioutil.TempDir("", "voidsync")
+	if err != nil {
+		log.Println("Error creating temporary directory:", err)
+	}
+
+	log.Println("Temporary directory created:", tempDir)
+
+	return tempDir
+}
+
+func MoveFiles(srcDir, targetDir string) error {
+	log.Println("Moving files from", srcDir, "to", targetDir)
+	localFiles, err := GetLocalFileListTime(srcDir)
+	if err != nil {
+		return err
+	}
+
+	for key := range localFiles {
+		srcPath := filepath.Join(srcDir, key)
+		dstPath := filepath.Join(targetDir, key)
+
+		destDir := filepath.Dir(dstPath)
+		if _, err := os.Stat(destDir); os.IsNotExist(err) {
+			log.Println("Creating directory:", destDir)
+			err := os.MkdirAll(destDir, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		}
+
+		err := os.Rename(srcPath, dstPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

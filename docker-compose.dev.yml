@@ -13,8 +13,6 @@ services:
     volumes:
       - ${HOME}/voidsync/minio:/data
     command: server /data --console-address ":9090"
-    networks:
-      - voidbox_network
 
   surrealdb:
     image: surrealdb/surrealdb:latest
@@ -24,20 +22,7 @@ services:
     volumes:
       - ${HOME}/voidsync/surrealdb:/mydata
     command: start --log trace --user root --pass root file:/mydata/mydatabase.db
-    networks:
-      - voidbox_network
 
-  voidsync:
-    image: loneexile/voidsync:latest
-    container_name: voidsync
-    ports:
-      - '8080:8080'
-    depends_on:
-      - minio
-      - surrealdb
-    networks:
-      - voidbox_network
-
-networks:
-  voidbox_network:
-    name: voidbox_network
+    # mkdir -p ${HOME}/voidsync/minio
+    # mkdir -p ${HOME}/voidsync/surrealdb
+    # mkdir -p ${HOME}/voidsync/blog

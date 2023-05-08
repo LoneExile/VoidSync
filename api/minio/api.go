@@ -35,10 +35,14 @@ func (api *ginAPI) Sync(localPath string, remotePath string) error {
 	return nil
 }
 
-func (api *ginAPI) DownloadAllObjects(localPath, remotePath string) error {
-	err := api.storageClient.DownloadAllObjects(context.Background(), localPath, remotePath)
+func (api *ginAPI) DownloadObjectsInServer(localPath, remotePath string) error {
+	err := api.storageClient.DownloadObjectsInServer(context.Background(), localPath, remotePath)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (api *ginAPI) DownloadAllObjects(remotePath string) (string, error) {
+	return api.storageClient.DownloadAllObjects(context.Background(), remotePath)
 }

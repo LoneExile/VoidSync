@@ -29,7 +29,7 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 			continue
 		}
 
-		targetPath := filepath.Join(targetDir)
+		targetPath := targetDir
 		err = os.MkdirAll(filepath.Dir(targetPath), os.ModePerm)
 		if err != nil {
 			continue
@@ -58,9 +58,7 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 
 	return nil
 }
-
-// TODO: Add a progress bar, download multiple objects concurrently using goroutines.
-func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix, targetDir string) error {
+func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (string, error) {
 	bucketName := m.Cfg.MinIOBucketName
 	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
 
@@ -69,38 +67,72 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix, targetDir
 		Recursive: true,
 	})
 
-	if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
+	tmpDir := utils.MkTmpDir()
+
+	numWorkers := 5
+	tasks := make(chan string, numWorkers)
+	results := make(chan error, numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			for objectKey := range tasks {
+				tmpFile := filepath.Join(tmpDir, objectKey)
+
+				var err error
+				for attempt := 0; attempt < maxDownloadAttempts; attempt++ {
+					err = m.DownloadObject(ctx, objectKey, tmpFile)
+					if err == nil {
+						break
+					}
+					time.Sleep(1 * time.Second)
+				}
+				results <- err
+			}
+		}()
+	}
+
+	go func() {
+		for object := range objectCh {
+			if object.Err != nil {
+				results <- object.Err
+			} else {
+				tasks <- object.Key
+			}
+		}
+		close(tasks)
+	}()
+
+	var errCount int
+	for i := 0; i < len(objectCh); i++ {
+		err := <-results
+		if err != nil {
+			log.Printf("🔴 Failed to download object: %v", err)
+			errCount++
+		}
+	}
+
+	if errCount > 0 {
+		return "", fmt.Errorf("failed to download %d objects", errCount)
+	}
+
+	log.Println("✅ Successfully downloaded all objects")
+
+	return tmpDir, nil
+}
+
+// TODO: Add a progress bar.
+func (m *MinioStorage) DownloadObjectsInServer(ctx context.Context, prefix, targetDir string) error {
+
+	tmpDir, err := m.DownloadAllObjects(ctx, prefix)
+	if err != nil {
 		return err
 	}
-	tmpDir := utils.MkTmpDir()
 	defer os.RemoveAll(tmpDir)
-
-	for object := range objectCh {
-		if object.Err != nil {
-			return object.Err
-		}
-
-		var err error
-		for i := 0; i < maxDownloadAttempts; i++ {
-			tmpFile := filepath.Join(tmpDir, object.Key)
-			err = m.DownloadObject(ctx, object.Key, tmpFile)
-			if err == nil {
-				break
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-
-		if err != nil {
-			return errors.New("🔴 failed to download object after multiple attempts: " + object.Key)
-		}
-	}
 
 	if err := utils.MoveFiles(tmpDir, targetDir); err != nil {
 		log.Println("🔴 failed to move files from tmp dir to target dir")
 		return err
 	}
-	log.Println("✅ Successfully downloaded all objects")
 
 	return nil
 }

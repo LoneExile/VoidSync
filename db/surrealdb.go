@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"voidsync/config"
 
 	"github.com/surrealdb/surrealdb.go"
 )
@@ -12,8 +13,8 @@ type User struct {
 	Surname string `json:"surname"`
 }
 
-func Init() {
-	db, err := surrealdb.New("ws://localhost:8000/rpc")
+func Init(cfg *config.Config) {
+	db, err := surrealdb.New(cfg.SurrealDBEndpoint)
 	if err != nil {
 		panic(err)
 	}

@@ -2,9 +2,11 @@ package server
 
 import (
 	"net/http"
+	"os"
 	"voidsync/api"
 	"voidsync/storage"
 	"voidsync/sync"
+	"voidsync/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,7 +48,7 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 		c.JSON(http.StatusOK, gin.H{"message": "Sync successful"})
 	})
 
-	router.POST("/download-all", func(c *gin.Context) {
+	router.POST("/download-all-server", func(c *gin.Context) {
 		var requestBody struct {
 			LocalPath  string `json:"localPath"`
 			RemotePath string `json:"remotePath"`
@@ -55,12 +57,36 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
-		err := apiInstance.DownloadAllObjects(requestBody.RemotePath, requestBody.LocalPath)
+		err := apiInstance.DownloadObjectsInServer(requestBody.RemotePath, requestBody.LocalPath)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Download successful"})
+	})
+
+	router.POST("/download-all", func(c *gin.Context) {
+		var requestBody struct {
+			RemotePath string `json:"remotePath"`
+		}
+		if err := c.BindJSON(&requestBody); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+		tmpDir, err := apiInstance.DownloadAllObjects(requestBody.RemotePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer os.RemoveAll(tmpDir)
+
+		c.Header("Content-Type", "application/zip")
+		c.Header("Content-Disposition", "attachment; filename=objects.zip")
+
+		err = utils.CreateZipArchive(c.Writer, tmpDir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 	})
 
 	router.Run(":8080")

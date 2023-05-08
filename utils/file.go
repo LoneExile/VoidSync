@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"archive/zip"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -101,4 +103,38 @@ func MoveFiles(srcDir, targetDir string) error {
 	}
 
 	return nil
+}
+
+func CreateZipArchive(writer io.Writer, srcDir string) error {
+	zipWriter := zip.NewWriter(writer)
+	defer zipWriter.Close()
+
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			relPath, err := filepath.Rel(srcDir, path)
+			if err != nil {
+				return err
+			}
+			zipFile, err := zipWriter.Create(relPath)
+			if err != nil {
+				return err
+			}
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			_, err = io.Copy(zipFile, file)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	return err
 }

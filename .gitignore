@@ -23,4 +23,7 @@ go.work
 public/download
 public/upload
 public/test
+public/obsidian
+public/output
 
+.DS_Store

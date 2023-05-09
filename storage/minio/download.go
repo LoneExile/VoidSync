@@ -122,7 +122,6 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (s
 
 // TODO: Add a progress bar.
 func (m *MinioStorage) DownloadObjectsInServer(ctx context.Context, prefix, targetDir string) error {
-
 	tmpDir, err := m.DownloadAllObjects(ctx, prefix)
 	if err != nil {
 		return err

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"io"
 	"time"
 	"voidsync/config"
 )
@@ -17,6 +18,9 @@ type Storage interface {
 	CreateBucket() error
 
 	UploadFile(baseDir, filePath, contentType string) error
+
+	UploadFileClient(ctx context.Context, filePath, contentType string, fileSize int64, file io.Reader) error
+	UploadDirClient(ctx context.Context, baseDir, remotePath, contentType string) error
 
 	DownloadObject(ctx context.Context, objectKey, targetDir string) error
 	DownloadObjectsInServer(ctx context.Context, prefix, targetDir string) error

@@ -89,5 +89,23 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 		}
 	})
 
+	router.POST("/upload-all", func(c *gin.Context) {
+		var requestBody struct {
+			LocalPath   string `json:"localPath"`
+			RemotePath  string `json:"remotePath"`
+			ContentType string `json:"contentType"`
+		}
+		if err := c.BindJSON(&requestBody); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+		err := apiInstance.UploadDirClient(requestBody.LocalPath, requestBody.RemotePath, requestBody.ContentType)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Upload successful"})
+	})
+
 	router.Run(":8080")
 }

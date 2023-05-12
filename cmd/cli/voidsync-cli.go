@@ -79,7 +79,9 @@ func convertObsidianToMarkdown(inputPath, imagePath, outputPath string) error {
 					return err
 				}
 
-				line = strings.Replace(line, match[0], fmt.Sprintf("![%s](%s)", imageName, newImagePath), 1)
+				outputImagePathMD := filepath.Join("../picture", newImageName)
+
+				line = strings.Replace(line, match[0], fmt.Sprintf("![%s](%s)", imageName, outputImagePathMD), 1)
 			}
 
 			writer.WriteString(line + "\n")

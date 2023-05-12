@@ -61,59 +61,83 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (string, error) {
 	bucketName := m.Cfg.MinIOBucketName
 	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
+	log.Printf("🔵 Downloading all objects from bucket: %s, prefix: %s", bucketName, prefix)
 
 	objectCh := m.Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: true,
 	})
 
-	tmpDir := utils.MkTmpDir()
-
-	numWorkers := 5
-	tasks := make(chan string, numWorkers)
-	results := make(chan error, numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			for objectKey := range tasks {
-				tmpFile := filepath.Join(tmpDir, objectKey)
-
-				var err error
-				for attempt := 0; attempt < maxDownloadAttempts; attempt++ {
-					err = m.DownloadObject(ctx, objectKey, tmpFile)
-					if err == nil {
-						break
-					}
-					time.Sleep(1 * time.Second)
-				}
-				results <- err
-			}
-		}()
+	// NOTE: this is a non-goroutine workaround
+	if err := os.MkdirAll(prefix, os.ModePerm); err != nil {
+		return "", err
 	}
-
-	go func() {
-		for object := range objectCh {
-			if object.Err != nil {
-				results <- object.Err
-			} else {
-				tasks <- object.Key
-			}
+	tmpDir := utils.MkTmpDir()
+	for object := range objectCh {
+		if object.Err != nil {
+			return "", object.Err
 		}
-		close(tasks)
-	}()
 
-	var errCount int
-	for i := 0; i < len(objectCh); i++ {
-		err := <-results
+		var err error
+		for i := 0; i < maxDownloadAttempts; i++ {
+			tmpFile := filepath.Join(tmpDir, object.Key)
+			err = m.DownloadObject(ctx, object.Key, tmpFile)
+			if err == nil {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
 		if err != nil {
 			log.Printf("🔴 Failed to download object: %v", err)
-			errCount++
+			return "", err
 		}
 	}
 
-	if errCount > 0 {
-		return "", fmt.Errorf("failed to download %d objects", errCount)
-	}
+	// BUG: something wrong with goroutine, sometimes it downloaded not all files and sometimes it downloaded empty files
+
+	// tmpDir := utils.MkTmpDir()
+	// numWorkers := 5
+	// tasks := make(chan string, numWorkers)
+	// results := make(chan error, numWorkers)
+	// for i := 0; i < numWorkers; i++ {
+	// 	go func() {
+	// 		for objectKey := range tasks {
+	// 			tmpFile := filepath.Join(tmpDir, objectKey)
+
+	// 			var err error
+	// 			for attempt := 0; attempt < maxDownloadAttempts; attempt++ {
+	// 				err = m.DownloadObject(ctx, objectKey, tmpFile)
+	// 				if err == nil {
+	// 					break
+	// 				}
+	// 				time.Sleep(1 * time.Second)
+	// 			}
+	// 			results <- err
+	// 		}
+	// 	}()
+	// }
+	// go func() {
+	// 	for object := range objectCh {
+	// 		if object.Err != nil {
+	// 			results <- object.Err
+	// 		} else {
+	// 			tasks <- object.Key
+	// 		}
+	// 	}
+	// 	close(tasks)
+	// }()
+	// var errCount int
+	// for i := 0; i < len(objectCh); i++ {
+	// 	err := <-results
+	// 	if err != nil {
+	// 		log.Printf("🔴 Failed to download object: %v", err)
+	// 		errCount++
+	// 	}
+	// }
+	// if errCount > 0 {
+	// 	return "", fmt.Errorf("failed to download %d objects", errCount)
+	// }
 
 	log.Println("✅ Successfully downloaded all objects")
 

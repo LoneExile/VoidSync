@@ -3,12 +3,71 @@ package minio
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 )
+
+func (m *MinioStorage) UploadFileClient(ctx context.Context, filePath, contentType string, fileSize int64, file io.Reader) error {
+	bucketName := m.Cfg.MinIOBucketName
+
+	opts := minio.PutObjectOptions{
+		ContentType: contentType,
+	}
+
+	info, err := m.Client.PutObject(ctx, bucketName, filePath, file, fileSize, opts)
+	if err != nil {
+		log.Printf("🔴 Failed to upload file: %v", err)
+		return err
+	}
+
+	log.Printf("✅ Successfully uploaded file: %s, size: %d", filePath, info.Size)
+	return nil
+}
+
+func (m *MinioStorage) UploadDirClient(ctx context.Context, baseDir, remotePath, contentType string) error {
+	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			relPath, err := filepath.Rel(baseDir, path)
+			if err != nil {
+				return err
+			}
+
+			remoteFilePath := filepath.Join(remotePath, relPath)
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			fileSize := info.Size()
+
+			err = m.UploadFileClient(ctx, remoteFilePath, contentType, fileSize, file)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("🔴 Failed to upload all files in directory: %v", err)
+		return err
+	}
+
+	log.Printf("✅ Successfully uploaded all files in directory: %s", baseDir)
+	return nil
+}
 
 func (m *MinioStorage) UploadFile(baseDir, filePath, contentType string) error {
 	err := m.checkIncompleteUploads("")

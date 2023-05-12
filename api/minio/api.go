@@ -46,3 +46,11 @@ func (api *ginAPI) DownloadObjectsInServer(localPath, remotePath string) error {
 func (api *ginAPI) DownloadAllObjects(remotePath string) (string, error) {
 	return api.storageClient.DownloadAllObjects(context.Background(), remotePath)
 }
+
+func (api *ginAPI) UploadDirClient(localPath, remotePath, contentType string) error {
+	err := api.storageClient.UploadDirClient(context.Background(), localPath, remotePath, contentType)
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -3,12 +3,14 @@ package server
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 	"voidsync/api"
 	"voidsync/storage"
 	"voidsync/sync"
 	"voidsync/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/cors"
 )
 
 func StartServer(client storage.Storage, syncer sync.Syncer) {
@@ -48,7 +50,7 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 		c.JSON(http.StatusOK, gin.H{"message": "Sync successful"})
 	})
 
-	router.POST("/download-all-server", func(c *gin.Context) {
+	router.POST("/download-in-server", func(c *gin.Context) {
 		var requestBody struct {
 			LocalPath  string `json:"localPath"`
 			RemotePath string `json:"remotePath"`
@@ -90,22 +92,58 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 	})
 
 	router.POST("/upload-all", func(c *gin.Context) {
-		var requestBody struct {
-			LocalPath   string `json:"localPath"`
-			RemotePath  string `json:"remotePath"`
-			ContentType string `json:"contentType"`
-		}
-		if err := c.BindJSON(&requestBody); err != nil {
+		form, err := c.MultipartForm()
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
-		err := apiInstance.UploadDirClient(requestBody.LocalPath, requestBody.RemotePath, requestBody.ContentType)
+
+		remotePath := form.Value["remotePath"][0]
+		contentType := form.Value["contentType"][0]
+		// log.Println(remotePath, contentType)
+
+		tmpDir := utils.MkTmpDir()
+		defer os.RemoveAll(tmpDir)
+
+		// get the files
+		files := form.File["files"]
+		for i, file := range files {
+			if file.Filename == ".DS_Store" {
+				continue
+			}
+			relativePath := form.Value["relativePaths"][i]
+
+			// log.Println(filepath.Join(tmpDir, filepath.Dir(relativePath)))
+			path := filepath.Join(tmpDir, filepath.Dir(relativePath))
+			pathFile := filepath.Join(tmpDir, relativePath)
+
+			err = os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			err := c.SaveUploadedFile(file, pathFile)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+		err = apiInstance.UploadDirClient(tmpDir, remotePath, contentType)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{"message": "Upload successful"})
 	})
 
-	router.Run(":8080")
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"}, // Replace with the domain of your Next.js app
+		AllowCredentials: true,
+	})
+
+	http.ListenAndServe(":8080", corsMiddleware.Handler(router))
+
+	// router.Run(":8080")
 }

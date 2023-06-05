@@ -62,7 +62,7 @@ func downloadFiles(client storage.Storage, localFiles, remoteFiles map[string]st
 			downloadRemotePath := filepath.Join(remotePath, filePath)
 
 			log.Printf("Downloading to %s", filepath.Join("/tmp/", filePath))
-			err := client.DownloadObject(context.Background(), downloadRemotePath, downloadTmpPath)
+			err := client.DownloadObject(context.Background(), downloadRemotePath, downloadTmpPath, false)
 			if err != nil {
 				log.Printf("🔴 Failed to download %s: %v", downloadRemotePath, err)
 			}

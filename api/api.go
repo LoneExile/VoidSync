@@ -11,7 +11,7 @@ type API interface {
 	Sync(localPath string, remotePath string) error
 
 	DownloadObjectsInServer(localPath, remotePath string) error
-	DownloadAllObjects(remotePath string) (string, error)
+	DownloadAllObjects(remotePath string, removeIcon bool) (string, error)
 
 	UploadDirClient(localPath, remotePath, contentType string) error
 }

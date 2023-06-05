@@ -23,7 +23,7 @@ func LoadConfig() *Config {
 		// MinIOAccessKeyID:    "ROOTUSER",
 		// MinIOSecretKey:      "CHANGEME123",
 		// MinIOUseSSL:         false, // Change to "true" if you are using https
-		// MinIOBucketName:     "blog",
+		// MinIOBucketName:     "notes",
 		// MaxDownloadAttempts: 5,
 
 		// MinIOEndpoint:     "localhost:9009",

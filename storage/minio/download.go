@@ -8,7 +8,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+	"unicode"
 	"voidsync/utils"
 
 	"github.com/minio/minio-go/v7"
@@ -18,7 +20,16 @@ import (
 // Keep in mind that this approach assumes that the files in the target directory are not being accessed or modified by other processes during the download process.
 // I need to ensure that the target directory remains consistent even when accessed by other processes, I might need to implement file locking or other concurrency control mechanisms.
 
-func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir string) error {
+func removeNonASCII(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r > unicode.MaxASCII {
+			return -1 // remove this rune
+		}
+		return r
+	}, s)
+}
+
+func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir string, removeIcon bool) error {
 	bucketName := m.Cfg.MinIOBucketName
 	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
 
@@ -27,6 +38,10 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 		obj, err := m.Client.GetObject(ctx, bucketName, objectKey, minio.GetObjectOptions{})
 		if err != nil {
 			continue
+		}
+
+		if removeIcon {
+			targetDir = removeNonASCII(targetDir)
 		}
 
 		targetPath := targetDir
@@ -58,7 +73,7 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 
 	return nil
 }
-func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (string, error) {
+func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string, removeIcon bool) (string, error) {
 	bucketName := m.Cfg.MinIOBucketName
 	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
 	log.Printf("🔵 Downloading all objects from bucket: %s, prefix: %s", bucketName, prefix)
@@ -81,7 +96,7 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (s
 		var err error
 		for i := 0; i < maxDownloadAttempts; i++ {
 			tmpFile := filepath.Join(tmpDir, object.Key)
-			err = m.DownloadObject(ctx, object.Key, tmpFile)
+			err = m.DownloadObject(ctx, object.Key, tmpFile, removeIcon)
 			if err == nil {
 				break
 			}
@@ -146,7 +161,7 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string) (s
 
 // TODO: Add a progress bar.
 func (m *MinioStorage) DownloadObjectsInServer(ctx context.Context, prefix, targetDir string) error {
-	tmpDir, err := m.DownloadAllObjects(ctx, prefix)
+	tmpDir, err := m.DownloadAllObjects(ctx, prefix, false)
 	if err != nil {
 		return err
 	}

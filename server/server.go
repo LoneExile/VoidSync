@@ -70,12 +70,14 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 	router.POST("/download-all", func(c *gin.Context) {
 		var requestBody struct {
 			RemotePath string `json:"remotePath"`
+			RemoveIcon bool   `json:"removeIcon"`
 		}
 		if err := c.BindJSON(&requestBody); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
-		tmpDir, err := apiInstance.DownloadAllObjects(requestBody.RemotePath)
+
+		tmpDir, err := apiInstance.DownloadAllObjects(requestBody.RemotePath, requestBody.RemoveIcon)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

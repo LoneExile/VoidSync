@@ -22,9 +22,9 @@ type Storage interface {
 	UploadFileClient(ctx context.Context, filePath, contentType string, fileSize int64, file io.Reader) error
 	UploadDirClient(ctx context.Context, baseDir, remotePath, contentType string) error
 
-	DownloadObject(ctx context.Context, objectKey, targetDir string) error
+	DownloadObject(ctx context.Context, objectKey, targetDir string, removeIcon bool) error
 	DownloadObjectsInServer(ctx context.Context, prefix, targetDir string) error
-	DownloadAllObjects(ctx context.Context, prefix string) (string, error)
+	DownloadAllObjects(ctx context.Context, prefix string, removeIcon bool) (string, error)
 
 	GetRemoteTimestamp(path string) (time.Time, error)
 	GetRemoteFileList(prefix string) (map[string]FileInfo, error)

@@ -27,3 +27,5 @@ public/obsidian
 public/output
 
 .DS_Store
+
+.env

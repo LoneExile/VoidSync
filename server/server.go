@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"voidsync/api"
+	"voidsync/config"
 	"voidsync/storage"
 	"voidsync/sync"
 	"voidsync/utils"
@@ -13,7 +14,7 @@ import (
 	"github.com/rs/cors"
 )
 
-func StartServer(client storage.Storage, syncer sync.Syncer) {
+func StartServer(client storage.Storage, syncer sync.Syncer, cfg *config.Config) {
 	router := gin.Default()
 
 	apiInstance := api.NewAPI(client, syncer)
@@ -141,7 +142,7 @@ func StartServer(client storage.Storage, syncer sync.Syncer) {
 	})
 
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"}, // Replace with the domain of your Next.js app
+		AllowedOrigins:   []string{"http://localhost:3000", cfg.NEXT_PUBLIC_SERVER_IP + ":3000"},
 		AllowCredentials: true,
 	})
 

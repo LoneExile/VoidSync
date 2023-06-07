@@ -39,5 +39,5 @@ func main() {
 
 	db.Init(cfg)
 
-	server.StartServer(client, syncer)
+	server.StartServer(client, syncer, cfg)
 }

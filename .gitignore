@@ -29,3 +29,6 @@ public/output
 .DS_Store
 
 .env
+.dev.env
+.env.bak
+.dev.env.bak

@@ -5,7 +5,7 @@ services:
     image: loneexile/voidsync:latest
     container_name: voidsync
     ports:
-      - '8080:8080'
+      - '8090:8090'
     env_file:
       - .env
     depends_on:

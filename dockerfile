@@ -24,6 +24,6 @@ COPY --from=builder /voidsync/myapp /voidsync/
 # Set the user to the non-root user
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8090
 
 ENTRYPOINT ["/voidsync/myapp"]

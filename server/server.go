@@ -146,7 +146,7 @@ func StartServer(client storage.Storage, syncer sync.Syncer, cfg *config.Config)
 		AllowCredentials: true,
 	})
 
-	http.ListenAndServe(":8080", corsMiddleware.Handler(router))
+	http.ListenAndServe(":8090", corsMiddleware.Handler(router))
 
 	// router.Run(":8080")
 }

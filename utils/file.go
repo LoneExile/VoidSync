@@ -71,7 +71,7 @@ func GetLocalFileListTime(path string) (map[string]time.Time, error) {
 func MkTmpDir() string {
 	tempDir := filepath.Join(os.TempDir(), "voidsync")
 
-	log.Println("Temporary directory created:", tempDir)
+	log.Println("✅ Temporary directory created:", tempDir)
 
 	return tempDir
 }

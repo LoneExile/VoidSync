@@ -32,3 +32,6 @@ public/output
 .dev.env
 .env.bak
 .dev.env.bak
+
+note.md
+README.b.md

@@ -75,26 +75,28 @@ func (m *MinioStorage) DownloadObject(ctx context.Context, objectKey, targetDir 
 }
 func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string, removeIcon bool) (string, error) {
 	bucketName := m.Cfg.MinIOBucketName
-	maxDownloadAttempts := m.Cfg.MaxDownloadAttempts
 	log.Printf("🔵 Downloading all objects from bucket: %s, prefix: %s", bucketName, prefix)
+
+	if prefix == "/" {
+		prefix = ""
+	}
 
 	objectCh := m.Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: true,
 	})
 
-	// NOTE: this is a non-goroutine workaround
-	if err := os.MkdirAll(prefix, os.ModePerm); err != nil {
-		return "", err
-	}
 	tmpDir := utils.MkTmpDir()
+
+	// NOTE: this is a non-goroutine workaround
 	for object := range objectCh {
 		if object.Err != nil {
+			log.Printf("🔴 Failed to list objects: %v", object.Err)
 			return "", object.Err
 		}
 
 		var err error
-		for i := 0; i < maxDownloadAttempts; i++ {
+		for i := 0; i < m.Cfg.MaxDownloadAttempts; i++ {
 			tmpFile := filepath.Join(tmpDir, object.Key)
 			err = m.DownloadObject(ctx, object.Key, tmpFile, removeIcon)
 			if err == nil {
@@ -111,7 +113,6 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string, re
 
 	// BUG: something wrong with goroutine, sometimes it downloaded not all files and sometimes it downloaded empty files
 
-	// tmpDir := utils.MkTmpDir()
 	// numWorkers := 5
 	// tasks := make(chan string, numWorkers)
 	// results := make(chan error, numWorkers)
@@ -155,7 +156,6 @@ func (m *MinioStorage) DownloadAllObjects(ctx context.Context, prefix string, re
 	// }
 
 	log.Println("✅ Successfully downloaded all objects")
-
 	return tmpDir, nil
 }
 

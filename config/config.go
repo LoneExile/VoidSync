@@ -16,7 +16,7 @@ type Config struct {
 
 	SurrealDBEndpoint string
 
-	NEXT_PUBLIC_SERVER_IP string
+	NextPublicServerIP string
 }
 
 func LoadConfig() *Config {
@@ -36,15 +36,15 @@ func LoadConfig() *Config {
 
 		// -------------------------------------------------------
 
-		StorageType:           os.Getenv("STORAGE_TYPE"),
-		MinIOEndpoint:         os.Getenv("MINIO_ENDPOINT"),
-		MinIOAccessKeyID:      os.Getenv("MINIO_ROOT_USER"),
-		MinIOSecretKey:        os.Getenv("MINIO_ROOT_PASSWORD"),
-		MinIOUseSSL:           os.Getenv("MINIO_USE_SSL") == "true",
-		MinIOBucketName:       os.Getenv("MINIO_BUCKET_NAME"),
-		MaxDownloadAttempts:   getIntEnv("MAX_DOWNLOAD_ATTEMPTS", 5),
-		SurrealDBEndpoint:     os.Getenv("SURREALDB_ENDPOINT"),
-		NEXT_PUBLIC_SERVER_IP: os.Getenv("NEXT_PUBLIC_SERVER_IP"),
+		StorageType:         os.Getenv("STORAGE_TYPE"),
+		MinIOEndpoint:       os.Getenv("MINIO_ENDPOINT"),
+		MinIOAccessKeyID:    os.Getenv("MINIO_ROOT_USER"),
+		MinIOSecretKey:      os.Getenv("MINIO_ROOT_PASSWORD"),
+		MinIOUseSSL:         os.Getenv("MINIO_USE_SSL") == "true",
+		MinIOBucketName:     os.Getenv("MINIO_BUCKET_NAME"),
+		MaxDownloadAttempts: getIntEnv("MAX_DOWNLOAD_ATTEMPTS", 5),
+		SurrealDBEndpoint:   os.Getenv("SURREALDB_ENDPOINT"),
+		NextPublicServerIP:  os.Getenv("NEXT_PUBLIC_SERVER_IP"),
 	}
 }
 

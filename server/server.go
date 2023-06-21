@@ -142,7 +142,7 @@ func StartServer(client storage.Storage, syncer sync.Syncer, cfg *config.Config)
 	})
 
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", cfg.NEXT_PUBLIC_SERVER_IP + ":3000"},
+		AllowedOrigins:   []string{"http://localhost:3000", cfg.NextPublicServerIP + ":3000"},
 		AllowCredentials: true,
 	})
 
